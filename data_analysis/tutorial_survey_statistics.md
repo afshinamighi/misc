@@ -53,7 +53,7 @@ pip install numpy pandas matplotlib scipy
 
 The question asked participants: *"What is your primary role in software development? (Select all that apply — max 3)"*
 
-This is a **multiple-choice question**: each respondent could select up to 3 roles. There were **31 respondents** in total (we'll derive this in a moment).
+This is a **multiple-choice question**: each respondent could select up to 3 roles. There were **31 respondents** in total.
 
 Here's the raw count data:
 
@@ -88,17 +88,6 @@ print(df)
 8             Data Scientist    3
 ```
 
-### How do we know N = 31?
-
-The question asks "Select all that apply," which means multiple-choice. The `n` in the output refers to **number of respondents who selected each option**, not total selections. The total number of *unique respondents* is stated as N = 31. You can verify this from context (e.g., `51.6% ≈ 16/31`).
-
-```python
-# Verify: if n=16 and %=51.6%, then N = ?
-n = 16
-pct = 0.516
-N = round(n / pct)
-print(f"Estimated N = {N}")  # → 31
-```
 
 ---
 
@@ -149,174 +138,237 @@ print(df[["Category", "n", "pct"]].to_string(index=False))
               Data Scientist    3    9.677
 ```
 
-### 3.5 Visualisation: Bar Chart
-
-```python
-import matplotlib.pyplot as plt
-
-fig, ax = plt.subplots(figsize=(10, 6))
-
-colors = ["#4C72B0" if p < 50 else "#DD8452" for p in df["pct"]]
-bars = ax.barh(df["Category"], df["pct"], color=colors)
-
-ax.set_xlabel("Percentage (%)", fontsize=12)
-ax.set_title("QQ01 — Primary Role in Software Development\n(N=31, multiple choice)", fontsize=13)
-ax.axvline(x=100/9, color="gray", linestyle="--", linewidth=1, label="Uniform (11.1%)")
-ax.legend()
-
-# Add value labels
-for bar, val in zip(bars, df["pct"]):
-    ax.text(val + 0.5, bar.get_y() + bar.get_height()/2,
-            f"{val:.1f}%", va="center", fontsize=10)
-
-plt.tight_layout()
-plt.savefig("qq01_barplot.png", dpi=150)
-plt.show()
-```
-
-> **What to look for:** The dashed line shows where each bar would sit if responses were perfectly equally spread (uniform). Bars much taller than the dashed line represent dominant categories.
 
 ---
 
 ## 4. Confidence Intervals <a name="confidence-intervals"></a>
 
-### 4.1 What is a Confidence Interval?
+### What is a Confidence Interval?
 
-A **confidence interval (CI)** captures the uncertainty around an estimate. Because our 31 respondents are just a *sample* from a larger population, the true percentage in the population could be slightly different from what we measured.
+A **confidence interval (CI)** gives a range of plausible values for an unknown
+population parameter — most commonly a proportion or a mean — estimated from a
+sample. Because we can only observe a subset of the population, our point
+estimate (e.g. the sample proportion $\hat{p}$) will differ from the true
+population value. A CI acknowledges that uncertainty by providing a lower and
+an upper bound.
 
-A **95% CI** means: if we repeated this survey many times, 95% of the resulting intervals would contain the true population proportion.
+**Intuition.** Imagine repeating the same survey 100 times on different
+random samples drawn from the same population, and computing a 95 % CI each
+time. Approximately 95 of those 100 intervals would contain the true population
+proportion. A single CI does not say "there is a 95 % probability the true
+value is inside this interval" — the true value is fixed; it is the interval
+that varies across samples. A CI says: *"we used a procedure that, in the long
+run, captures the truth 95 % of the time."*
 
-### 4.2 Why Not Just Use the Simple ± Formula?
+**Why it matters in survey analysis.** A raw percentage (e.g. "52 % selected
+this option") says nothing about precision. With a sample of n = 31, that same
+52 % could reasonably represent anything from roughly 34 % to 68 % of the
+population. A CI makes that uncertainty explicit and prevents over-interpretation
+of small samples.
 
-You may have seen:
+---
 
-$$\hat{p} \pm z \cdot \sqrt{\frac{\hat{p}(1-\hat{p})}{N}}$$
+### The General Formula
 
-This is the **Normal approximation** (Wald interval). It works well when `n` is large, but **breaks down for small counts** (like AI Engineer with n=1). That's why the output uses a more robust method.
+For a population proportion $p$, the classical point estimate from a sample of
+size $n$ is:
 
-### 4.3 The Wilson Score Interval (What the Output Uses)
+$$\hat{p} = \frac{k}{n}$$
 
-The **Wilson score interval** is a better method for proportions, especially for small samples or extreme proportions (near 0% or 100%).
+where $k$ is the number of "successes" (e.g. respondents who selected a given
+option). The standard error of $\hat{p}$ is:
 
-$$\text{CI} = \frac{\hat{p} + \frac{z^2}{2n} \pm z\sqrt{\frac{\hat{p}(1-\hat{p})}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}}$$
+$$SE(\hat{p}) = \sqrt{\frac{\hat{p}(1-\hat{p})}{n}}$$
 
-Where:
-- $\hat{p} = n_i / N$ is the observed proportion
-- $z = 1.96$ for a 95% confidence level
-- $n = N = 31$ (number of respondents)
+A symmetric confidence interval at confidence level $1 - \alpha$ is then:
 
-This looks complex — but Python handles it in one line.
+$$\hat{p} \pm z_{\alpha/2} \cdot SE(\hat{p})$$
 
-### 4.4 Worked Example
+where $z_{\alpha/2}$ is the critical value from the standard normal distribution
+(1.96 for 95 %, 2.576 for 99 %).
 
-For "Team Lead / Manager": $n_i = 16$, $N = 31$, $\hat{p} = 16/31 \approx 0.516$
+---
 
-Using Wilson's formula with $z = 1.96$:
-- Lower bound: **34.8%**
-- Upper bound: **68.0%**
+### A Simple Example
 
-This matches the output: `[34.8%, 68.0%]`
+Suppose 14 out of 20 students pass an exam ($k = 14$, $n = 20$).
 
-### 4.5 Python Code
+$$\hat{p} = \frac{14}{20} = 0.70$$
 
-```python
-from scipy.stats import binom
+$$SE = \sqrt{\frac{0.70 \times 0.30}{20}} = \sqrt{0.0105} \approx 0.1025$$
 
-def wilson_ci(n_success, n_total, confidence=0.95):
-    """
-    Compute Wilson score confidence interval for a proportion.
-    
-    Parameters:
-        n_success: number of "successes" (e.g., people who chose this option)
-        n_total:   total number of respondents
-        confidence: confidence level (default 0.95 for 95%)
-    
-    Returns:
-        (lower, upper) as proportions (multiply by 100 for percentage)
-    """
-    z = stats.norm.ppf(1 - (1 - confidence) / 2)  # 1.96 for 95%
-    p_hat = n_success / n_total
-    
-    denominator = 1 + z**2 / n_total
-    centre = (p_hat + z**2 / (2 * n_total)) / denominator
-    margin = z * np.sqrt(p_hat * (1 - p_hat) / n_total + z**2 / (4 * n_total**2)) / denominator
-    
-    return (centre - margin, centre + margin)
+$$\text{95 \% CI} = 0.70 \pm 1.96 \times 0.1025 = 0.70 \pm 0.201 = [0.499,\ 0.901]$$
 
-# Apply to all categories
-N = 31
-ci_results = []
-for _, row in df.iterrows():
-    lo, hi = wilson_ci(row["n"], N)
-    ci_results.append({
-        "Category": row["Category"],
-        "n": row["n"],
-        "pct": row["n"] / N * 100,
-        "CI_low": lo * 100,
-        "CI_high": hi * 100
-    })
+**Interpretation.** Based on this sample, we are 95 % confident that the true
+pass rate in the broader student population lies between 49.9 % and 90.1 %.
+The wide interval reflects the small sample size ($n = 20$).
 
-ci_df = pd.DataFrame(ci_results)
-print(ci_df.to_string(index=False, float_format="%.1f"))
-```
+---
 
-```
-                     Category   n    pct  CI_low  CI_high
-               Data Engineer    4   12.9     5.1     28.9
-         Team Lead / Manager   16   51.6    34.8     68.0
-           Software Engineer   16   51.6    34.8     68.0
-             DevOps Engineer    3    9.7     3.3     24.9
-          Software Architect    7   22.6    11.4     39.8
-                 AI Engineer    1    3.2     0.6     16.2
-  Quality Assurance Engineer    2    6.5     1.8     20.7
-               Product Owner    1    3.2     0.6     16.2
-              Data Scientist    3    9.7     3.3     24.9
-```
+### Common Techniques
 
-> ✅ These match the output exactly!
+| Method | Core idea | Typical context |
+|---|---|---|
+| **Normal (Wald) approximation** | $\hat{p} \pm z \cdot \sqrt{\hat{p}(1-\hat{p})/n}$ | Large $n$, $\hat{p}$ not near 0 or 1 |
+| **Wilson score** | Inverts the score test; centres interval on an adjusted proportion | Small $n$, rare events, multi-choice surveys |
+| **Clopper–Pearson (exact)** | Uses Beta distribution quantiles; guaranteed coverage | Medical / clinical trials; regulatory contexts |
+| **Agresti–Coull** | Adds 2 pseudo-successes and 2 pseudo-failures before applying Wald | Easy-to-explain alternative to Wilson; small $n$ |
+| **Bootstrap** | Resamples data empirically thousands of times | Complex statistics with no closed form (median, correlation, composite scores) |
+| **Student's $t$-interval** | $\bar{x} \pm t \cdot s/\sqrt{n}$; uses $t$-distribution | Continuous data (Likert averages, response times) |
+| **Bayesian credible interval** | Prior + likelihood → posterior distribution | When prior knowledge exists; small or sparse samples |
 
-### 4.6 Visualisation: Bar Chart with Error Bars
+**Practical guidance.**
 
-```python
-fig, ax = plt.subplots(figsize=(10, 6))
+- Use the **Wald** interval as a quick approximation when $n > 100$ and $0.1 < \hat{p} < 0.9$.
+- Prefer **Wilson** or **Agresti–Coull** for survey proportions with moderate $n$ (< 100) or when some categories may have very few selections.
+- Use **Clopper–Pearson** when you need guaranteed (conservative) coverage, e.g. for safety-critical reporting.
+- Use the **$t$-interval** for Likert-scale means and any other continuous numeric outcome.
+- Use **Bootstrap** when you cannot assume a particular distribution or when your statistic is not a simple mean or proportion.
 
-pcts = ci_df["pct"].values
-lower_err = pcts - ci_df["CI_low"].values
-upper_err = ci_df["CI_high"].values - pcts
-errors = [lower_err, upper_err]
+---
 
-ax.barh(ci_df["Category"], pcts, color="#4C72B0", alpha=0.75)
-ax.errorbar(pcts, ci_df["Category"],
-            xerr=errors,
-            fmt='none', color='black', capsize=5, linewidth=2)
+### Multi-Choice Questions and the Wilson Score Interval
 
-ax.set_xlabel("Percentage (%) with 95% Wilson CI")
-ax.set_title("QQ01 — Role Distribution with Confidence Intervals (N=31)")
-ax.axvline(x=100/9, color="gray", linestyle="--", label="Uniform")
-ax.legend()
-plt.tight_layout()
-plt.savefig("qq01_ci.png", dpi=150)
-plt.show()
-```
+#### The survey question
 
-> **What to notice:** Categories with small `n` (like AI Engineer, n=1) have **very wide CIs**, reflecting high uncertainty. Categories with larger `n` have narrower CIs.
+> *What is your primary role in software development? (Select all that apply — max 3)*
 
-### 4.7 Quick Comparison: Wilson vs Normal Approximation
+With $n = 31$ respondents, the observed selection counts are:
 
-```python
-# Show why Wilson is better for small n
-print(f"{'Category':<30} {'Wald Low':>10} {'Wald High':>10} {'Wilson Low':>12} {'Wilson High':>12}")
-print("-" * 76)
+| Category | $k$ | $\hat{p} = k/n$ |
+|---|--:|--:|
+| Data Engineer | 4 | 12.9 % |
+| Team Lead / Manager | 16 | 51.6 % |
+| Software Engineer | 16 | 51.6 % |
+| DevOps Engineer | 3 | 9.7 % |
+| Software Architect | 7 | 22.6 % |
+| AI Engineer | 1 | 3.2 % |
+| Quality Assurance Engineer | 2 | 6.5 % |
+| Product Owner | 1 | 3.2 % |
+| Data Scientist | 3 | 9.7 % |
 
-z = 1.96
-for _, row in ci_df.iterrows():
-    p = row["n"] / N
-    wald_lo = max(0, p - z * np.sqrt(p*(1-p)/N)) * 100
-    wald_hi = min(1, p + z * np.sqrt(p*(1-p)/N)) * 100
-    print(f"{row['Category']:<30} {wald_lo:>10.1f} {wald_hi:>10.1f} {row['CI_low']:>12.1f} {row['CI_high']:>12.1f}")
-```
+Each category is treated as an independent binary outcome: a respondent either
+selected it ($1$) or did not ($0$). The denominator is always the **total
+number of respondents** ($n = 31$), not the total number of selections
+($\sum k_i = 53$).
 
-> **Key insight:** For "AI Engineer" (n=1), the Wald formula gives a lower bound below 0%, which is nonsensical. Wilson handles this gracefully.
+---
+
+#### Why not the Normal (Wald) approximation?
+
+The Wald interval assumes the sampling distribution of $\hat{p}$ is
+approximately normal. A standard rule of thumb requires both $n\hat{p} \geq 5$
+and $n(1-\hat{p}) \geq 5$. Checking the rarer categories:
+
+| Category | $k$ | $n\hat{p}$ | Rule satisfied? |
+|---|--:|--:|:--:|
+| AI Engineer | 1 | **1** | ✗ |
+| Product Owner | 1 | **1** | ✗ |
+| QA Engineer | 2 | **2** | ✗ |
+| DevOps Engineer | 3 | **3** | ✗ |
+| Data Scientist | 3 | **3** | ✗ |
+
+Five out of nine categories violate the assumption. The practical consequence
+is immediate — applying Wald produces impossible negative lower bounds:
+
+| Category | Wald lower bound |
+|---|--:|
+| AI Engineer | $-3.0$ % ✗ |
+| Product Owner | $-3.0$ % ✗ |
+| QA Engineer | $-2.2$ % ✗ |
+| DevOps Engineer | $-0.7$ % ✗ |
+
+A probability cannot be negative. The Wald interval fails precisely
+for the rarest categories, where precision matters most.
+
+---
+
+#### The Wilson Score Interval
+
+The Wilson interval is derived by inverting the score test. Rather than
+computing "how far is $\hat{p}$ from the hypothesised $p_0$?", it asks:
+"for which values of $p_0$ would the observed $\hat{p}$ not be surprising?"
+This produces an interval that is naturally bounded within $[0, 1]$.
+
+The formula is:
+
+$$\text{lower, upper} =
+\frac{\hat{p} + \dfrac{z^2}{2n} \;\pm\; z\sqrt{\dfrac{\hat{p}(1-\hat{p})}{n} + \dfrac{z^2}{4n^2}}}
+     {1 + \dfrac{z^2}{n}}$$
+
+where $z = 1.96$ for a 95 % interval.
+
+**Key properties.**
+
+1. **Always in $[0,1]$.** Adding $z^2/(2n)$ to the numerator before dividing shifts the centre away from the boundary, preventing negative bounds.
+2. **Asymmetric near the boundaries.** When $\hat{p}$ is close to 0 or 1, the interval deliberately stretches more on the uncertain side — statistically correct behaviour.
+3. **Reduces to Wald for large $n$.** As $n \to \infty$, the correction terms $z^2/n \to 0$ and both formulas converge.
+
+---
+
+#### Step-by-step: AI Engineer ($k = 1$, $n = 31$)
+
+This is the most extreme case and best illustrates the difference.
+
+**Step 1 — point estimate**
+
+$$\hat{p} = \frac{1}{31} \approx 0.0323$$
+
+**Step 2 — constants**
+
+$$z = 1.96, \quad z^2 = 3.8416$$
+
+**Step 3 — adjusted centre**
+
+$$\tilde{p} = \frac{0.0323 + \dfrac{3.8416}{2 \times 31}}{1 + \dfrac{3.8416}{31}}
+= \frac{0.0323 + 0.0619}{1.1239}
+= \frac{0.0942}{1.1239}
+\approx 0.0839$$
+
+**Step 4 — margin**
+
+$$M = \frac{1.96}{1.1239}\sqrt{\frac{0.0323 \times 0.9677}{31} + \frac{3.8416}{4 \times 31^2}}
+= 1.743 \times \sqrt{0.001008 + 0.001000}
+\approx 1.743 \times 0.0448
+\approx 0.0781$$
+
+**Step 5 — interval**
+
+$$\text{lower} = 0.0839 - 0.0781 \approx 0.6\%$$
+$$\text{upper} = 0.0839 + 0.0781 \approx 16.2\%$$
+
+**Interpretation.** Although only one of 31 respondents identified as an AI
+Engineer, the Wilson 95 % CI is $[0.6\%,\ 16.2\%]$. We cannot rule out that
+up to ~16 % of the broader ICT workforce holds this role. This is wide but
+honest: it accurately reflects the uncertainty when $k = 1$. The Wald
+result ($[-3.0\%,\ 9.5\%]$) is simply invalid.
+
+---
+
+#### Results for all categories (95 % Wilson CI, $n = 31$)
+
+| Category | $k$ | $\hat{p}$ | Wilson lower | Wilson upper | Wald lower |
+|---|--:|--:|--:|--:|--:|
+| Data Engineer | 4 | 12.9 % | 5.1 % | 28.9 % | 1.1 % |
+| Team Lead / Manager | 16 | 51.6 % | 34.8 % | 68.0 % | 34.0 % |
+| Software Engineer | 16 | 51.6 % | 34.8 % | 68.0 % | 34.0 % |
+| DevOps Engineer | 3 | 9.7 % | 3.3 % | 24.9 % | **−0.7 %** ✗ |
+| Software Architect | 7 | 22.6 % | 11.4 % | 39.8 % | 7.9 % |
+| AI Engineer | 1 | 3.2 % | 0.6 % | 16.2 % | **−3.0 %** ✗ |
+| Quality Assurance Engineer | 2 | 6.5 % | 1.8 % | 20.7 % | **−2.2 %** ✗ |
+| Product Owner | 1 | 3.2 % | 0.6 % | 16.2 % | **−3.0 %** ✗ |
+| Data Scientist | 3 | 9.7 % | 3.3 % | 24.9 % | **−0.7 %** ✗ |
+
+---
+
+#### A note on independence
+
+The Wilson CI treats each category as an independent binary question.
+In a multi-select setting this is an approximation — the choices are not
+fully independent (e.g. selecting "Team Lead" may correlate with "Software
+Engineer"). Reporting per-category CIs is nonetheless the standard approach
+for descriptive survey reporting. If joint distributions are needed, consider
+logistic regression or multiple correspondence analysis instead.
 
 ---
 
