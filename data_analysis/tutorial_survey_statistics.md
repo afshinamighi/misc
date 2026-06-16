@@ -31,7 +31,7 @@ When we collect survey responses, raw data alone doesn't tell us much. We need t
 | Shannon Entropy | How diverse the responses are | `Shannon entropy` row |
 | Chi-Square test | Whether distribution differs from uniform | `χ²` row |
 
-### Python Libraries Used
+<!-- ### Python Libraries Used
 
 ```python
 import numpy as np
@@ -40,12 +40,12 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 from scipy.stats import chi2_contingency, binom
 import math
-```
+``` -->
 
-Install any missing libraries with:
+<!-- Install any missing libraries with:
 ```bash
 pip install numpy pandas matplotlib scipy
-```
+``` -->
 
 ---
 
@@ -57,7 +57,7 @@ This is a **multiple-choice question**: each respondent could select up to 3 rol
 
 Here's the raw count data:
 
-```python
+<!-- ```python
 import pandas as pd
 import numpy as np
 
@@ -73,7 +73,7 @@ data = {
 
 df = pd.DataFrame(data)
 print(df)
-```
+``` -->
 
 ```
                      Category   n
