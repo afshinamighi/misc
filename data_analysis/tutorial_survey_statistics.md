@@ -513,35 +513,6 @@ print(f"Shannon Entropy (scipy) = {H_scipy:.4f} bits")
 - Normalised = **0.812** → responses are about **81% as diverse as they could theoretically be**
 - This is fairly high — respondents are spread across many roles, though Team Lead and Software Engineer dominate
 
-### 5.7 Visualisation: Entropy Intuition
-
-```python
-# Visual demonstration of entropy for different hypothetical distributions
-fig, axes = plt.subplots(1, 3, figsize=(14, 4))
-
-k = 9
-
-scenarios = {
-    "All chose one role\n(H = 0)": [31, 0, 0, 0, 0, 0, 0, 0, 0],
-    "Our actual data\n(H = 2.57)": [4, 16, 16, 3, 7, 1, 2, 1, 3],
-    "Perfectly equal\n(H = 3.17, max)": [31/9]*9
-}
-
-for ax, (title, counts_s) in zip(axes, scenarios.items()):
-    p_s = np.array(counts_s) / sum(counts_s)
-    H_s = entropy(p_s, base=2)
-    ax.bar(range(k), p_s, color="#4C72B0", alpha=0.75)
-    ax.set_title(f"{title}\nH = {H_s:.2f} bits", fontsize=10)
-    ax.set_xticks(range(k))
-    ax.set_xticklabels([f"R{i+1}" for i in range(k)], fontsize=8)
-    ax.set_ylim(0, 1)
-    ax.set_ylabel("Proportion")
-
-plt.suptitle("Shannon Entropy Across Different Response Distributions", fontsize=12, y=1.02)
-plt.tight_layout()
-plt.savefig("entropy_comparison.png", dpi=150)
-plt.show()
-```
 
 ---
 
@@ -601,7 +572,7 @@ This is close to the reported **49.0566**. ✅
 
 A very small p-value (e.g., p < 0.05) means: *"It's very unlikely this distribution is uniform — there are dominant categories."*
 
-### 6.6 Python Code
+<!-- ### 6.6 Python Code
 
 ```python
 from scipy.stats import chisquare
@@ -625,7 +596,7 @@ print(f"\nχ² statistic = {chi2_stat:.4f}")
 print(f"Degrees of freedom = {k - 1}")
 print(f"p-value = {p_value:.4f}")
 print(f"\nSignificant at α=0.05? {'YES ✓' if p_value < 0.05 else 'NO'}")
-```
+``` -->
 
 ```
 Total selections: 53
@@ -703,7 +674,7 @@ plt.show()
 
 ---
 
-## 7. Putting It All Together: Reproducing the Output <a name="putting-it-all-together"></a>
+<!-- ## 7. Putting It All Together: Reproducing the Output <a name="putting-it-all-together"></a>
 
 Now let's write a single, complete Python script that reproduces the full output from the original analysis.
 
@@ -780,7 +751,7 @@ print(f"  Dominant category : {dominant}")
 print(f"  Shannon entropy   : {H:.4f} bits  (normalised: {H_norm:.4f})")
 sig = "✓ significant" if p_val < 0.05 else "✗ not significant"
 print(f"  χ² (uniform)      : {chi2_stat:.4f},  p = {p_val:.4f}  —  {sig} at α = 0.05")
-```
+``` -->
 
 **Output:**
 ```
