@@ -344,10 +344,10 @@ $$\text{lower} = 0.0839 - 0.0781 \approx 0.6\%$$
 $$\text{upper} = 0.0839 + 0.0781 \approx 16.2\%$$
 
 **Interpretation.** Although only one of 31 respondents identified as an AI
-Engineer, the Wilson 95 % CI is $[0.6\% ,\ 16.2\% ]$. We cannot rule out that
-up to ~16\% of the broader ICT workforce holds this role. This is wide but
+Engineer, the Wilson 95% CI is `[0.6% , 16.2% ]`. We cannot rule out that
+up to ~16% of the broader ICT workforce holds this role. This is wide but
 honest: it accurately reflects the uncertainty when $k = 1$. The Wald
-result ($[-3.0\% ,\ 9.5\% ]$) is simply invalid.
+result (`[-3.0% , 9.5% ]`) is simply invalid.
 
 
 
