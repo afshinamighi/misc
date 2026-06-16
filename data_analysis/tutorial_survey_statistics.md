@@ -114,7 +114,7 @@ For "Team Lead / Manager": $n_i = 16$, $N = 31$
 
 $$\frac{16}{31} \times 100\% = 51.6\%$$
 
-### 3.4 Python Code
+<!-- ### 3.4 Python Code
 
 ```python
 N = 31  # Total respondents
@@ -123,7 +123,7 @@ N = 31  # Total respondents
 df["pct"] = df["n"] / N * 100
 
 print(df[["Category", "n", "pct"]].to_string(index=False))
-```
+``` -->
 
 ```
                      Category   n       pct
