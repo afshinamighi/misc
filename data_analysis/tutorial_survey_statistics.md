@@ -344,10 +344,41 @@ $$\text{lower} = 0.0839 - 0.0781 \approx 0.6\%$$
 $$\text{upper} = 0.0839 + 0.0781 \approx 16.2\%$$
 
 **Interpretation.** Although only one of 31 respondents identified as an AI
-Engineer, the Wilson 95 % CI is $[0.6\%,\ 16.2\%]$. We cannot rule out that
-up to ~16 % of the broader ICT workforce holds this role. This is wide but
+Engineer, the Wilson 95 % CI is $[0.6\% ,\ 16.2\% ]$. We cannot rule out that
+up to ~16\% of the broader ICT workforce holds this role. This is wide but
 honest: it accurately reflects the uncertainty when $k = 1$. The Wald
-result ($[-3.0\%,\ 9.5\%]$) is simply invalid.
+result ($[-3.0\% ,\ 9.5\% ]$) is simply invalid.
+
+
+
+#### Computing Wilson CIs with `proportion_confint`
+
+The `proportion_confint` function from `statsmodels` computes confidence
+intervals for a proportion using several methods, including Wilson.
+
+```python
+from statsmodels.stats.proportion import proportion_confint
+
+lower, upper = proportion_confint(count, nobs, alpha=0.05, method='wilson')
+```
+
+- `count` — number of successes ($k$)
+- `nobs` — total number of observations ($n$)
+- `alpha` — significance level; `0.05` → 95 % CI, `0.01` → 99 % CI
+- `method` — CI technique; use `'wilson'` for the Wilson score interval
+
+> **Important.** The default method is `'normal'` (Wald). Always specify
+> `method='wilson'` explicitly, otherwise you may silently get invalid
+> intervals for small samples or rare categories.
+
+**Example** — 14 out of 20 students pass an exam:
+
+```python
+lower, upper = proportion_confint(count=14, nobs=20, alpha=0.05, method='wilson')
+print(f"95 % Wilson CI: [{lower:.3f}, {upper:.3f}]")
+# 95 % Wilson CI: [0.469, 0.871]
+```
+
 
 ---
 
