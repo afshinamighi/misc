@@ -456,7 +456,7 @@ $$H = -\sum p_i \cdot \log_2(p_i) = -(-0.381 - 0.492 - 0.492 - 0.326 - 0.485 - 0
 
 $$H = 3.079 \approx ... \text{ wait, let's compute precisely in Python}$$
 
-### 5.4 Python Code
+<!-- ### 5.4 Python Code
 
 ```python
 import math
@@ -483,7 +483,7 @@ H_max = math.log2(k)
 H_norm = H / H_max
 print(f"Maximum possible entropy (log2({k})) = {H_max:.4f} bits")
 print(f"Normalised entropy = {H:.4f} / {H_max:.4f} = {H_norm:.4f}")
-```
+``` -->
 
 ```
 Proportions: [0.129  0.516  0.516  0.0968 0.2258 0.0323 0.0645 0.0323 0.0968]
