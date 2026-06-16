@@ -143,28 +143,67 @@ print(df[["Category", "n", "pct"]].to_string(index=False))
 
 ## 4. Confidence Intervals <a name="confidence-intervals"></a>
 
-### What is a Confidence Interval?
+### The core problem
 
-A **confidence interval (CI)** gives a range of plausible values for an unknown
+You want to know something about a population — the average, a proportion, whatever. But you cannot measure the whole population, so you take a sample and compute a statistic from it. That statistic is your best guess, but it is not the truth. A different sample would give you a different number. The question a CI answers is: how much should I trust this guess?
+
+### The sampling distribution — the concept everything rests on
+
+Imagine you could repeat your study 10,000 times, each time drawing a fresh random sample of the same size and computing the same statistic (say, the mean). If you plotted all 10,000 results, you would get a distribution — not of your raw data, but of the statistic itself. This is called the sampling distribution.
+
+Two things are always true about it:
+- Its centre is (approximately) the true population value.
+- Its spread — called the standard error — shrinks as your sample size grows. Larger samples produce estimates that cluster more tightly around the truth.
+
+You never actually run 10,000 studies. But mathematically, you can describe what that sampling distribution would look like, which is what the CI formula captures.
+
+### What a CI actually is
+
+A **confidence interval (CI)** is a procedure that uses your one sample to draw a window around your estimate, sized so that — if you repeated the whole process many times — the window would contain the true population value a stated percentage of the time (95 %, 99 %, etc.).
+The critical thing: it is the procedure that has the 95 % success rate, not any single interval. Once you have computed one interval, the true value either is or is not inside it — there is no probability about it anymore. The 95 % refers to the long-run behaviour of the method, not the probability attached to one particular result.
+
+A CI gives a range of plausible values for an unknown
 population parameter — most commonly a proportion or a mean — estimated from a
 sample. Because we can only observe a subset of the population, our point
 estimate (e.g. the sample proportion $\hat{p}$) will differ from the true
 population value. A CI acknowledges that uncertainty by providing a lower and
 an upper bound.
 
-**Intuition.** Imagine repeating the same survey 100 times on different
-random samples drawn from the same population, and computing a 95 % CI each
-time. Approximately 95 of those 100 intervals would contain the true population
-proportion. A single CI does not say "there is a 95 % probability the true
-value is inside this interval" — the true value is fixed; it is the interval
-that varies across samples. A CI says: *"we used a procedure that, in the long
-run, captures the truth 95 % of the time."*
+A 95% CI is an interval that covers 95% of your interest measuring parameters (e.g. the mean). This means if you repeat the experiment for a long time, 95% of times the parameter (e.g. the mean) will be within this interval.
+
+
+
+### The most common misconception
+
+Almost everyone, on first encounter, interprets a 95 % CI as: "there is a 95 % probability the true value is in this range." This feels natural but is technically wrong from the frequentist perspective that underlies classical CIs.
+The true value is a fixed (unknown) constant — it does not have a probability distribution. What has a 95 % chance of success is the method of constructing the interval. Think of it like a net: a net that catches fish 95 % of the time is a good net, but once you have thrown it, the fish is either caught or it is not.
+If you want to say "there is a 95 % probability the true value lies here", you need a Bayesian credible interval instead, which explicitly models your uncertainty about the parameter as a probability distribution.
+
+### What controls the width?
+
+A CI has two ingredients: your point estimate in the centre, and a margin of error on either side. The margin depends on:
+
+#### Sample size n
+
+Larger samples results in narrower interval. The standard error shrinks proportionally to $1/\sqrt{n}$, so to halve the width you need to quadruple the sample size.
+
+#### Variability in the data. 
+
+More spread in the underlying population means wider interval. You are less certain because observations are noisier.
+
+#### Confidence level. 
+
+A 99% CI is wider than a 95% CI. You pay for more confidence with less precision.
+
+These three always trade off against each other. There is no free lunch: you cannot have high confidence, high precision, and a tiny sample at the same time.
+
+
 
 **Why it matters in survey analysis.** A raw percentage (e.g. "52 % selected
 this option") says nothing about precision. With a sample of n = 31, that same
-52 % could reasonably represent anything from roughly 34 % to 68 % of the
-population. A CI makes that uncertainty explicit and prevents over-interpretation
-of small samples.
+52% could reasonably represent anything from roughly 34% to 68% of the
+population. **A CI makes that uncertainty explicit and prevents over-interpretation
+of small samples**.
 
 ---
 
@@ -176,7 +215,7 @@ size $n$ is:
 $$\hat{p} = \frac{k}{n}$$
 
 where $k$ is the number of "successes" (e.g. respondents who selected a given
-option). The standard error of $\hat{p}$ is:
+option). The **standard error** of $\hat{p}$ is:
 
 $$SE(\hat{p}) = \sqrt{\frac{\hat{p}(1-\hat{p})}{n}}$$
 
@@ -199,31 +238,26 @@ $$SE = \sqrt{\frac{0.70 \times 0.30}{20}} = \sqrt{0.0105} \approx 0.1025$$
 
 $$\text{95 \% CI} = 0.70 \pm 1.96 \times 0.1025 = 0.70 \pm 0.201 = [0.499,\ 0.901]$$
 
-**Interpretation.** Based on this sample, we are 95 % confident that the true
-pass rate in the broader student population lies between 49.9 % and 90.1 %.
-The wide interval reflects the small sample size ($n = 20$).
+**Interpretation.** If we repeat the sampling procedure, i.e. drawing 20 students from the same population and computing a CI each time, new intervals will be calculated but 95% of the resulting intervals would contain the true (fixed) pass rate. We have to emphasize here that we do not repeat the exam, because repeating the exam would change who passes and who fails (pass rate).
 
 ---
 
-### Common Techniques
+### Some Techniques
+
+Depending on the context and the parameters of interest, different techniques can be used to calculate confidence intervals (CIs). Here, we introduce three common methods:
+
 
 | Method | Core idea | Typical context |
 |---|---|---|
 | **Normal (Wald) approximation** | $\hat{p} \pm z \cdot \sqrt{\hat{p}(1-\hat{p})/n}$ | Large $n$, $\hat{p}$ not near 0 or 1 |
 | **Wilson score** | Inverts the score test; centres interval on an adjusted proportion | Small $n$, rare events, multi-choice surveys |
 | **Clopper–Pearson (exact)** | Uses Beta distribution quantiles; guaranteed coverage | Medical / clinical trials; regulatory contexts |
-| **Agresti–Coull** | Adds 2 pseudo-successes and 2 pseudo-failures before applying Wald | Easy-to-explain alternative to Wilson; small $n$ |
-| **Bootstrap** | Resamples data empirically thousands of times | Complex statistics with no closed form (median, correlation, composite scores) |
-| **Student's $t$-interval** | $\bar{x} \pm t \cdot s/\sqrt{n}$; uses $t$-distribution | Continuous data (Likert averages, response times) |
-| **Bayesian credible interval** | Prior + likelihood → posterior distribution | When prior knowledge exists; small or sparse samples |
 
 **Practical guidance.**
 
 - Use the **Wald** interval as a quick approximation when $n > 100$ and $0.1 < \hat{p} < 0.9$.
-- Prefer **Wilson** or **Agresti–Coull** for survey proportions with moderate $n$ (< 100) or when some categories may have very few selections.
+- Prefer **Wilson** (or **Agresti–Coull**) for survey proportions with moderate $n$ (< 100) or when some categories may have very few selections.
 - Use **Clopper–Pearson** when you need guaranteed (conservative) coverage, e.g. for safety-critical reporting.
-- Use the **$t$-interval** for Likert-scale means and any other continuous numeric outcome.
-- Use **Bootstrap** when you cannot assume a particular distribution or when your statistic is not a simple mean or proportion.
 
 ---
 
@@ -252,34 +286,6 @@ selected it ($1$) or did not ($0$). The denominator is always the **total
 number of respondents** ($n = 31$), not the total number of selections
 ($\sum k_i = 53$).
 
----
-
-#### Why not the Normal (Wald) approximation?
-
-The Wald interval assumes the sampling distribution of $\hat{p}$ is
-approximately normal. A standard rule of thumb requires both $n\hat{p} \geq 5$
-and $n(1-\hat{p}) \geq 5$. Checking the rarer categories:
-
-| Category | $k$ | $n\hat{p}$ | Rule satisfied? |
-|---|--:|--:|:--:|
-| AI Engineer | 1 | **1** | ✗ |
-| Product Owner | 1 | **1** | ✗ |
-| QA Engineer | 2 | **2** | ✗ |
-| DevOps Engineer | 3 | **3** | ✗ |
-| Data Scientist | 3 | **3** | ✗ |
-
-Five out of nine categories violate the assumption. The practical consequence
-is immediate — applying Wald produces impossible negative lower bounds:
-
-| Category | Wald lower bound |
-|---|--:|
-| AI Engineer | $-3.0$ % ✗ |
-| Product Owner | $-3.0$ % ✗ |
-| QA Engineer | $-2.2$ % ✗ |
-| DevOps Engineer | $-0.7$ % ✗ |
-
-A probability cannot be negative. The Wald interval fails precisely
-for the rarest categories, where precision matters most.
 
 ---
 
