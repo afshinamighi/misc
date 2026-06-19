@@ -409,7 +409,7 @@ logistic regression or multiple correspondence analysis instead.
 
 ---
 
-## 5. Shannon Entropy
+## 5. Shannon Entropy <a name="shannon-entropy"></a>
 
 ### 5.1 What is Shannon Entropy?
 
