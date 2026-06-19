@@ -595,263 +595,163 @@ comparable.
 ---------
 
 
-## 6. Chi-Square Goodness-of-Fit Test <a name="chi-square-test"></a>
+---
 
-### 6.1 What is the Chi-Square Test?
+## 6. Chi-Square Goodness of Fit
 
-The **chi-square goodness-of-fit test** answers the question:
+### 6.1 Intuition in a Survey Context
 
-> *"Could the distribution of responses have come from a uniform distribution by chance?"*
+Shannon entropy tells you **how spread out** a distribution is. The
+chi-square goodness of fit test asks a different, sharper question: **is
+the observed distribution meaningfully different from what you would expect
+by chance?**
 
-In other words: if all roles were equally popular, would we see these counts? Or is the observed pattern too skewed to be explained by random variation?
+In a survey context, the most natural reference point is the **uniform
+distribution** — the scenario where every category is equally likely, i.e.
+respondents are distributed evenly across all options. The test then asks:
+is the deviation from that uniform baseline large enough to be statistically
+significant, or could it plausibly be explained by random sampling variation?
 
-### 6.2 The Logic
-
-We compare:
-- **Observed counts (O):** What we actually measured (4, 16, 16, 3, 7, 1, 2, 1, 3)
-- **Expected counts (E):** What we'd expect if the distribution were perfectly uniform
-
-Under a uniform distribution, each of the 9 categories would get an equal share of the 31 responses:
-
-$$E_i = \frac{N}{k} = \frac{31}{9} \approx 3.444$$
-
-> **Important note:** In a multiple-choice "select all that apply" question, the total number of *selections* (not respondents) is spread across categories. Here: $\sum n_i = 4+16+16+3+7+1+2+1+3 = 53$ total selections. So the expected count per category under uniformity is $53/9 \approx 5.89$.
-
-### 6.3 The Test Statistic
-
-$$\chi^2 = \sum_{i=1}^{k} \frac{(O_i - E_i)^2}{E_i}$$
-
-The larger this value, the more the observed data deviates from the expected uniform distribution.
-
-### 6.4 Worked Example
-
-Total selections: $\sum n_i = 53$  
-Expected per category: $E_i = 53/9 \approx 5.889$
-
-| Category | O | E | (O−E)² / E |
-|---|---|---|---|
-| Data Engineer | 4 | 5.889 | 0.607 |
-| Team Lead / Manager | 16 | 5.889 | 17.37 |
-| Software Engineer | 16 | 5.889 | 17.37 |
-| DevOps Engineer | 3 | 5.889 | 1.417 |
-| Software Architect | 7 | 5.889 | 0.209 |
-| AI Engineer | 1 | 5.889 | 4.057 |
-| QA Engineer | 2 | 5.889 | 2.567 |
-| Product Owner | 1 | 5.889 | 4.057 |
-| Data Scientist | 3 | 5.889 | 1.417 |
-
-$$\chi^2 = 0.607 + 17.37 + 17.37 + 1.417 + 0.209 + 4.057 + 2.567 + 4.057 + 1.417 \approx 49.07$$
-
-This is close to the reported **49.0566**. ✅
-
-### 6.5 Degrees of Freedom and the p-value
-
-- **Degrees of freedom:** $df = k - 1 = 9 - 1 = 8$
-- **p-value:** The probability of seeing a $\chi^2$ this large (or larger) *if the distribution were truly uniform*
-
-A very small p-value (e.g., p < 0.05) means: *"It's very unlikely this distribution is uniform — there are dominant categories."*
-
-<!-- ### 6.6 Python Code
-
-```python
-from scipy.stats import chisquare
-
-observed = df["n"].values
-
-# Expected: uniform distribution (all categories equally likely)
-# Total selections, divided evenly
-total_selections = observed.sum()
-k = len(observed)
-expected_uniform = np.full(k, total_selections / k)
-
-print(f"Total selections: {total_selections}")
-print(f"Expected per category (uniform): {total_selections/k:.4f}")
-print(f"Expected array: {np.round(expected_uniform, 3)}")
-
-# Chi-square test
-chi2_stat, p_value = chisquare(f_obs=observed, f_exp=expected_uniform)
-
-print(f"\nχ² statistic = {chi2_stat:.4f}")
-print(f"Degrees of freedom = {k - 1}")
-print(f"p-value = {p_value:.4f}")
-print(f"\nSignificant at α=0.05? {'YES ✓' if p_value < 0.05 else 'NO'}")
-``` -->
-
-```
-Total selections: 53
-Expected per category (uniform): 5.8889
-Expected array: [5.889 5.889 5.889 5.889 5.889 5.889 5.889 5.889 5.889]
-
-χ² statistic = 49.0566
-Degrees of freedom = 8
-p-value = 0.0000
-
-Significant at α=0.05? YES ✓
-```
-
-> ✅ Matches the output: `χ² = 49.0566, p = 0.0000 — ✓ significant at α = 0.05`
-
-### 6.7 The Critical Value Approach
-
-Another way to make the decision:
-
-```python
-from scipy.stats import chi2
-
-alpha = 0.05
-df_chi = k - 1  # 8
-
-# Critical value: the χ² threshold at which 5% of the distribution lies above
-critical_value = chi2.ppf(1 - alpha, df=df_chi)
-
-print(f"Critical value (χ² at df=8, α=0.05): {critical_value:.4f}")
-print(f"Our test statistic: {chi2_stat:.4f}")
-print(f"Decision: {'Reject H₀ (not uniform)' if chi2_stat > critical_value else 'Fail to reject H₀'}")
-```
-
-```
-Critical value (χ² at df=8, α=0.05): 15.5073
-Our test statistic: 49.0566
-Decision: Reject H₀ (not uniform)
-```
-
-Since 49.06 >> 15.51, we strongly reject the null hypothesis.
-
-### 6.8 Visualisation: Chi-Square Distribution
-
-```python
-from scipy.stats import chi2
-
-fig, ax = plt.subplots(figsize=(10, 5))
-
-x = np.linspace(0, 70, 500)
-df_chi = 8
-
-ax.plot(x, chi2.pdf(x, df=df_chi), 'b-', linewidth=2, label=f'χ² distribution (df={df_chi})')
-
-# Shade the rejection region (tail beyond critical value)
-x_crit = chi2.ppf(0.95, df=df_chi)
-x_tail = x[x >= x_crit]
-ax.fill_between(x_tail, chi2.pdf(x_tail, df=df_chi), alpha=0.3, color='red', label=f'Rejection region (α=0.05)')
-
-# Mark our test statistic
-ax.axvline(x=chi2_stat, color='green', linestyle='--', linewidth=2, label=f'Our χ² = {chi2_stat:.2f}')
-ax.axvline(x=x_crit, color='red', linestyle=':', linewidth=2, label=f'Critical value = {x_crit:.2f}')
-
-ax.set_xlabel('χ² value', fontsize=12)
-ax.set_ylabel('Probability density', fontsize=12)
-ax.set_title('Chi-Square Goodness-of-Fit Test (df=8)', fontsize=13)
-ax.legend(fontsize=10)
-ax.set_xlim(0, 70)
-
-plt.tight_layout()
-plt.savefig("chi_square_test.png", dpi=150)
-plt.show()
-```
-
-> **What to read:** The green dashed line (our statistic) is far to the right of the red dotted line (critical value). This means our result falls deep in the "rejection region" — the distribution is definitively not uniform.
+This distinction matters. Entropy might tell you a distribution is 85 %
+diverse, but that number alone does not tell you whether the deviation from
+perfect uniformity is meaningful or just noise from a small sample. Chi-square
+answers the noise question.
 
 ---
 
-<!-- ## 7. Putting It All Together: Reproducing the Output <a name="putting-it-all-together"></a>
+### 6.2 The Formula
 
-Now let's write a single, complete Python script that reproduces the full output from the original analysis.
+Given $k$ categories with observed counts $O_i$ and expected counts $E_i$
+under the null hypothesis:
 
-```python
-import numpy as np
-import pandas as pd
-import scipy.stats as stats
-from scipy.stats import entropy, chisquare
-import math
+$$\chi^2 = \sum_{i=1}^{k} \frac{(O_i - E_i)^2}{E_i}$$
 
-# ─────────────────────────────────────────────
-# DATA
-# ─────────────────────────────────────────────
-N = 31  # Total respondents
+Each term $(O_i - E_i)^2 / E_i$ measures how far one category deviates from
+expectation, scaled by the expectation itself. Larger deviations contribute
+more. The total $\chi^2$ is the sum of all those contributions.
 
-data = {
-    "Category": [
-        "Data Engineer", "Team Lead / Manager", "Software Engineer",
-        "DevOps Engineer", "Software Architect", "AI Engineer",
-        "Quality Assurance Engineer", "Product Owner", "Data Scientist"
-    ],
-    "n": [4, 16, 16, 3, 7, 1, 2, 1, 3]
-}
-df = pd.DataFrame(data)
+For a uniform null hypothesis with $n$ total observations:
 
-# ─────────────────────────────────────────────
-# STEP 1: Proportions and percentages
-# ─────────────────────────────────────────────
-df["pct"] = df["n"] / N
+$$E_i = \frac{n}{k} \quad \text{for all } i$$
 
-# ─────────────────────────────────────────────
-# STEP 2: Wilson confidence intervals
-# ─────────────────────────────────────────────
-def wilson_ci(n_success, n_total, confidence=0.95):
-    z = stats.norm.ppf(1 - (1 - confidence) / 2)
-    p_hat = n_success / n_total
-    denom = 1 + z**2 / n_total
-    centre = (p_hat + z**2 / (2 * n_total)) / denom
-    margin = z * np.sqrt(p_hat * (1-p_hat)/n_total + z**2/(4*n_total**2)) / denom
-    return (centre - margin, centre + margin)
+The test statistic follows a chi-square distribution with $df = k - 1$
+degrees of freedom. A large $\chi^2$ — beyond the critical value for a
+chosen significance level — leads to rejecting the null hypothesis.
+Equivalently, a small p-value (typically $< 0.05$) indicates the observed
+distribution is unlikely to have arisen from the uniform baseline by chance.
 
-df["ci_low"], df["ci_high"] = zip(*df["n"].apply(lambda n: wilson_ci(n, N)))
+> **Rule of thumb.** The chi-square approximation is reliable when all
+> expected counts $E_i \geq 5$. Below that threshold the test becomes
+> unreliable, especially for categories with very small counts.
 
-# ─────────────────────────────────────────────
-# STEP 3: Shannon entropy
-# ─────────────────────────────────────────────
-k = len(df)
-p = df["pct"].values
-H = entropy(p, base=2)
-H_max = math.log2(k)
-H_norm = H / H_max
+---
 
-# ─────────────────────────────────────────────
-# STEP 4: Chi-square test (vs uniform)
-# ─────────────────────────────────────────────
-total_selections = df["n"].sum()
-expected = np.full(k, total_selections / k)
-chi2_stat, p_val = chisquare(f_obs=df["n"].values, f_exp=expected)
-dominant = df.loc[df["n"].idxmax(), "Category"]
+### 6.3 Worked Example: Single-Choice Question
 
-# ─────────────────────────────────────────────
-# PRINT FORMATTED OUTPUT
-# ─────────────────────────────────────────────
-sep = "─" * 74
-print(f"QQ01  |  What is your primary role in software development?")
-print(sep)
-print(f"  {'Category':<43} {'n':>5}   {'%':>6}        {'95% CI'}")
-print(f"  {'-'*68}")
-for _, row in df.iterrows():
-    ci_str = f"[{row['ci_low']*100:.1f}%, {row['ci_high']*100:.1f}%]"
-    print(f"  {row['Category']:<43} {row['n']:>5}  {row['pct']*100:>5.1f}%   {ci_str:>18}")
-print(sep)
-print(f"  Dominant category : {dominant}")
-print(f"  Shannon entropy   : {H:.4f} bits  (normalised: {H_norm:.4f})")
-sig = "✓ significant" if p_val < 0.05 else "✗ not significant"
-print(f"  χ² (uniform)      : {chi2_stat:.4f},  p = {p_val:.4f}  —  {sig} at α = 0.05")
-``` -->
+**Question:** *How many years of experience do you have in software
+development?* ($n = 31$, $k = 5$)
 
-**Output:**
-```
-QQ01  |  What is your primary role in software development?
-──────────────────────────────────────────────────────────────────────────
-  Category                                              n       %        95% CI
-  --------------------------------------------------------------------
-  Data Engineer                                         4   12.9%    [5.1%, 28.9%]
-  Team Lead / Manager                                  16   51.6%   [34.8%, 68.0%]
-  Software Engineer                                    16   51.6%   [34.8%, 68.0%]
-  DevOps Engineer                                       3    9.7%    [3.3%, 24.9%]
-  Software Architect                                    7   22.6%   [11.4%, 39.8%]
-  AI Engineer                                           1    3.2%    [0.6%, 16.2%]
-  Quality Assurance Engineer                            2    6.5%    [1.8%, 20.7%]
-  Product Owner                                         1    3.2%    [0.6%, 16.2%]
-  Data Scientist                                        3    9.7%    [3.3%, 24.9%]
-──────────────────────────────────────────────────────────────────────────
-  Dominant category : Team Lead / Manager
-  Shannon entropy   : 2.5739 bits  (normalised: 0.8120)
-  χ² (uniform)      : 49.0566,  p = 0.0000  —  ✓ significant at α = 0.05
-```
+Under the uniform null hypothesis, every category is expected to have
+$E_i = 31 / 5 = 6.2$ respondents.
+
+| Category | $O_i$ | $E_i$ | $(O_i - E_i)^2 / E_i$ |
+|---|--:|--:|--:|
+| 4 – 6 years | 7 | 6.2 | 0.103 |
+| > 10 years | 14 | 6.2 | 9.813 |
+| 7 – 10 years | 4 | 6.2 | 0.781 |
+| < 1 year | 1 | 6.2 | 4.361 |
+| 1 – 3 years | 5 | 6.2 | 0.232 |
+
+$$\chi^2 = 0.103 + 9.813 + 0.781 + 4.361 + 0.232 = 15.290$$
+
+$$df = k - 1 = 4, \quad \chi^2_{\text{critical}}(\alpha=0.05,\ df=4) = 9.488$$
+
+$$p\text{-value} = 0.004$$
+
+Since $\chi^2 = 15.290 > 9.488$ and $p = 0.004 < 0.05$, we reject the null
+hypothesis. The distribution of experience levels is significantly different
+from uniform.
+
+Looking at the individual terms, the dominant contributor is the "> 10
+years" category with a term of 9.813 — by far the largest. This confirms
+what the proportions already suggested: senior developers are
+over-represented relative to what a uniform distribution would predict.
+
+---
+
+### 6.4 Multi-Select Question: What Changes?
+
+**Question:** *What is your primary role in software development?*
+($n = 31$ respondents, 53 total selections, $k = 9$ categories)
+
+The same conceptual question applies — are selections distributed uniformly
+across roles? — but the mechanics need adjustment for the same reason as
+entropy: dividing by the number of respondents ($n = 31$) does not produce
+a valid reference distribution because respondents contribute multiple
+selections.
+
+The fix follows the same logic as before: **use total selections as the
+reference**, not total respondents. The expected count per category under
+uniform becomes:
+
+$$E_i = \frac{\sum O_i}{k} = \frac{53}{9} \approx 5.889$$
+
+| Category | $O_i$ | $E_i$ | $(O_i - E_i)^2 / E_i$ |
+|---|--:|--:|--:|
+| Data Engineer | 4 | 5.889 | 0.606 |
+| Team Lead / Manager | 16 | 5.889 | 17.361 |
+| Software Engineer | 16 | 5.889 | 17.361 |
+| DevOps Engineer | 3 | 5.889 | 1.417 |
+| Software Architect | 7 | 5.889 | 0.210 |
+| AI Engineer | 1 | 5.889 | 4.059 |
+| QA Engineer | 2 | 5.889 | 2.568 |
+| Product Owner | 1 | 5.889 | 4.059 |
+| Data Scientist | 3 | 5.889 | 1.417 |
+
+$$\chi^2 = 49.057, \quad df = 8, \quad \chi^2_{\text{critical}}(\alpha=0.05,\ df=8) = 15.507$$
+
+$$p\text{-value} \approx 0$$
+
+The result is unambiguous: the distribution of role selections is far from
+uniform.
+
+**One important caveat.** The standard chi-square goodness of fit test
+assumes observations are independent. In a multi-select question, a single
+respondent contributes to multiple categories simultaneously, so that
+assumption is softened. The test applied here treats individual selections
+as the unit of observation rather than respondents. This is a reasonable
+practical approximation for descriptive purposes, but the p-value and
+critical value should be interpreted with some caution rather than
+mechanically.
+
+---
+
+### 6.5 What Does Chi-Square Add to a Survey Interpretation?
+
+The same question raised for entropy applies here: what does chi-square add
+beyond reading the proportions?
+
+The answer is more concrete than it was for entropy. Proportions tell you
+*what* the distribution looks like. Chi-square tells you whether the pattern
+you see is **statistically reliable** or could simply be an artefact of a
+small sample. With $n = 31$, a category showing 45 % could look dominant
+just by chance. Chi-square quantifies whether that chance explanation is
+plausible.
+
+In practice, chi-square is most useful in two situations:
+
+- **Comparing responses across subgroups.** If you split respondents by
+  company size or sector, chi-square tests whether the distributions
+  differ significantly between groups — not just visually, but in a way
+  that is unlikely to be random.
+- **Flagging questions worth investigating further.** A low chi-square
+  (non-significant) on a question with few categories may indicate genuine
+  consensus, or simply insufficient data. A very high chi-square flags
+  strong structural patterns that deserve attention in the analysis.
+
+Connecting it back to entropy: entropy quantifies *how much* diversity
+exists; chi-square tests *whether* the deviation from uniform is real.
+They answer complementary questions and are most useful together.
 
 ---
 
