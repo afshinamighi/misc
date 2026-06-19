@@ -409,112 +409,191 @@ logistic regression or multiple correspondence analysis instead.
 
 ---
 
-## 5. Shannon Entropy <a name="shannon-entropy"></a>
+## 5. Shannon Entropy
 
 ### 5.1 What is Shannon Entropy?
 
-**Shannon entropy** comes from information theory (developed by Claude Shannon in 1948). It measures **how diverse or spread out** a distribution is.
+**Shannon entropy** comes from information theory (Claude Shannon, 1948). In
+the context of survey analysis it measures **how spread out responses are
+across categories**.
 
-- **High entropy** = responses are spread across many categories evenly (high diversity)
-- **Low entropy** = responses are concentrated in one or few categories (low diversity)
+- **High entropy** → responses are distributed evenly across many categories
+- **Low entropy** → responses concentrate in one or few categories
 
-Think of it this way:
-- If everyone chose the same role → entropy = 0 (no surprise, no diversity)
-- If everyone chose a different role equally → entropy = maximum (maximum surprise/diversity)
+Two extreme cases build the intuition:
+
+- If every respondent chose the same answer → entropy = 0 (no diversity,
+  no surprise)
+- If respondents were spread perfectly equally across all categories →
+  entropy = maximum (complete diversity)
+
+Everything else falls somewhere between these two extremes.
+
+---
 
 ### 5.2 The Formula
 
-For a distribution with $k$ categories, where $p_i$ is the proportion in category $i$:
+For a distribution with $k$ categories, where $p_i$ is the proportion of
+responses in category $i$:
 
 $$H = -\sum_{i=1}^{k} p_i \cdot \log_2(p_i)$$
 
-The result is measured in **bits**. The maximum possible entropy for $k$ categories is:
+The result is measured in **bits**. The maximum possible entropy for $k$
+categories is:
 
 $$H_{\max} = \log_2(k)$$
 
-**Normalised entropy** scales entropy between 0 and 1:
+**Normalised entropy** scales the result to $[0, 1]$, making it comparable
+across questions with different numbers of categories:
 
 $$H_{\text{norm}} = \frac{H}{H_{\max}} = \frac{H}{\log_2(k)}$$
 
-### 5.3 Worked Example (Step by Step)
-
-We have $k = 9$ categories. First, calculate each $p_i = n_i / N$:
-
-| Category | n | p = n/31 | log₂(p) | p × log₂(p) |
-|---|---|---|---|---|
-| Data Engineer | 4 | 0.129 | -2.954 | -0.381 |
-| Team Lead / Manager | 16 | 0.516 | -0.954 | -0.492 |
-| Software Engineer | 16 | 0.516 | -0.954 | -0.492 |
-| DevOps Engineer | 3 | 0.097 | -3.366 | -0.326 |
-| Software Architect | 7 | 0.226 | -2.148 | -0.485 |
-| AI Engineer | 1 | 0.032 | -4.954 | -0.160 |
-| QA Engineer | 2 | 0.065 | -3.954 | -0.257 |
-| Product Owner | 1 | 0.032 | -4.954 | -0.160 |
-| Data Scientist | 3 | 0.097 | -3.366 | -0.326 |
-
-$$H = -\sum p_i \cdot \log_2(p_i) = -(-0.381 - 0.492 - 0.492 - 0.326 - 0.485 - 0.160 - 0.257 - 0.160 - 0.326)$$
-
-$$H = 3.079 \approx ... \text{ wait, let's compute precisely in Python}$$
-
-<!-- ### 5.4 Python Code
-
-```python
-import math
-
-N = 31
-counts = df["n"].values
-k = len(counts)
-
-# Step 1: Calculate proportions
-p = counts / N
-print("Proportions:", np.round(p, 4))
-
-# Step 2: Calculate entropy contributions
-# Note: skip p=0 terms (0 * log(0) is defined as 0 in entropy)
-entropy_terms = [-pi * math.log2(pi) for pi in p if pi > 0]
-print("\nEntropy terms (p_i * log2(p_i)):", [round(t, 4) for t in entropy_terms])
-
-# Step 3: Sum for total entropy
-H = sum(entropy_terms)
-print(f"\nShannon Entropy H = {H:.4f} bits")
-
-# Step 4: Normalised entropy
-H_max = math.log2(k)
-H_norm = H / H_max
-print(f"Maximum possible entropy (log2({k})) = {H_max:.4f} bits")
-print(f"Normalised entropy = {H:.4f} / {H_max:.4f} = {H_norm:.4f}")
-``` -->
-
-```
-Proportions: [0.129  0.516  0.516  0.0968 0.2258 0.0323 0.0645 0.0323 0.0968]
-
-Entropy terms: [0.381, 0.492, 0.492, 0.326, 0.485, 0.160, 0.257, 0.160, 0.326]
-
-Shannon Entropy H = 2.5739 bits
-Maximum possible entropy (log2(9)) = 3.1699 bits
-Normalised entropy = 2.5739 / 3.1699 = 0.8120
-```
-
-> ✅ This matches the output: `Shannon entropy: 2.5739 bits (normalised: 0.8120)`
-
-### 5.5 Using scipy directly
-
-```python
-from scipy.stats import entropy
-
-# scipy uses natural log by default; specify base=2 for bits
-H_scipy = entropy(counts, base=2)
-print(f"Shannon Entropy (scipy) = {H_scipy:.4f} bits")
-```
-
-### 5.6 Interpreting the Numbers
-
-- Entropy = **2.5739 bits** out of a maximum of **3.1699 bits**
-- Normalised = **0.812** → responses are about **81% as diverse as they could theoretically be**
-- This is fairly high — respondents are spread across many roles, though Team Lead and Software Engineer dominate
-
+One requirement is fundamental: **the $p_i$ values must form a valid
+probability distribution**, meaning they must be non-negative and sum to
+exactly 1. This is automatic for single-choice questions, but requires
+extra care for multi-select questions — as we will see below.
 
 ---
+
+### 5.3 Worked Example: Single-Choice Question
+
+**Question:** *How many years of experience do you have in software
+development?* ($n = 31$ respondents, $k = 5$ categories)
+
+Because each respondent selects exactly one answer, the counts sum to $n$:
+
+$$\sum n_i = 7 + 14 + 4 + 1 + 5 = 31 = n$$
+
+The proportions therefore sum to 1 automatically:
+
+$$p_i = \frac{n_i}{n}, \qquad \sum p_i = 1 \checkmark$$
+
+| Category | $n_i$ | $p_i = n_i/31$ | $\log_2(p_i)$ | $p_i \times \log_2(p_i)$ |
+|---|--:|--:|--:|--:|
+| 4 – 6 years | 7 | 0.2258 | −2.1468 | −0.4848 |
+| > 10 years | 14 | 0.4516 | −1.1468 | −0.5179 |
+| 7 – 10 years | 4 | 0.1290 | −2.9542 | −0.3812 |
+| < 1 year | 1 | 0.0323 | −4.9542 | −0.1598 |
+| 1 – 3 years | 5 | 0.1613 | −2.6323 | −0.4246 |
+
+$$H = -\sum p_i \cdot \log_2(p_i) = -(−0.4848 − 0.5179 − 0.3812 − 0.1598 − 0.4246) = 1.968 \text{ bits}$$
+
+$$H_{\max} = \log_2(5) = 2.322 \text{ bits}$$
+
+$$H_{\text{norm}} = \frac{1.968}{2.322} = 0.848$$
+
+**Interpretation.** The distribution is about 85 % as diverse as it could
+theoretically be. The dominant group (> 10 years, 45 %) pulls entropy
+downward from its maximum, but the remaining four categories are spread
+reasonably well, keeping diversity high.
+
+---
+
+### 5.4 The Problem with Multi-Select Questions
+
+Now consider a multi-select question where respondents could choose up to
+3 options:
+
+**Question:** *What is your primary role in software development?*
+($n = 31$ respondents, $k = 9$ categories, up to 3 selections each)
+
+The temptation is to compute proportions the same way: $p_i = n_i / 31$.
+But this breaks the fundamental requirement of Shannon entropy. In a
+multi-select question, each respondent contributes more than one selection,
+so the counts no longer sum to $n$:
+
+$$\sum n_i = 4 + 16 + 16 + 3 + 7 + 1 + 2 + 1 + 3 = 53 \neq 31$$
+
+Dividing by 31 therefore gives proportions that sum to $53/31 \approx 1.71$,
+not 1:
+
+$$\sum p_i = \frac{53}{31} \approx 1.71 \quad \leftarrow \text{not a valid probability distribution}$$
+
+Feeding values that do not sum to 1 into the Shannon formula produces a
+number that has no meaningful interpretation as entropy. You would be
+measuring something undefined.
+
+---
+
+### 5.5 The Fix: Shift the Denominator
+
+The solution is conceptually simple: instead of dividing by the number of
+**respondents**, divide by the number of **selections**:
+
+$$p_i = \frac{n_i}{\sum n_i} = \frac{n_i}{53}$$
+
+This reframes the question. Rather than asking *"what fraction of respondents
+chose category $i$?"*, we ask *"what fraction of all selections went to
+category $i$?"* The unit of analysis shifts from the respondent to the
+individual selection — and the proportions now sum to 1 by construction.
+
+The entropy then measures: **how evenly are the selections distributed across
+categories?**
+
+---
+
+### 5.6 Worked Example: Multi-Select Question (Corrected)
+
+Using $\sum n_i = 53$ as the denominator:
+
+| Category | $n_i$ | $p_i = n_i/53$ | $\log_2(p_i)$ | $p_i \times \log_2(p_i)$ |
+|---|--:|--:|--:|--:|
+| Data Engineer | 4 | 0.0755 | −3.7279 | −0.2814 |
+| Team Lead / Manager | 16 | 0.3019 | −1.7279 | −0.5216 |
+| Software Engineer | 16 | 0.3019 | −1.7279 | −0.5216 |
+| DevOps Engineer | 3 | 0.0566 | −4.1430 | −0.2345 |
+| Software Architect | 7 | 0.1321 | −2.9206 | −0.3857 |
+| AI Engineer | 1 | 0.0189 | −5.7279 | −0.1081 |
+| QA Engineer | 2 | 0.0377 | −4.7279 | −0.1784 |
+| Product Owner | 1 | 0.0189 | −5.7279 | −0.1081 |
+| Data Scientist | 3 | 0.0566 | −4.1430 | −0.2345 |
+
+$$H = 2.574 \text{ bits}, \qquad H_{\max} = \log_2(9) = 3.170 \text{ bits}, \qquad H_{\text{norm}} = 0.812$$
+
+
+#### Python implementation
+
+The natural homes for entropy in Python are:
+
+- `scipy.stats.entropy`: the standard go-to; computes Shannon entropy and also KL divergence between two distributions
+- `numpy`: no built-in entropy function, but the formula is one line: `-np.sum(probs * np.log2(probs))`
+
+----
+
+### 5.8 Interpretation
+
+| Question | $H$ (bits) | $H_{\max}$ (bits) | $H_{\text{norm}}$ |
+|---|--:|--:|--:|
+| Years of experience (single) | 1.968 | 2.322 | 0.848 |
+| Primary role (multi-select) | 2.574 | 3.170 | 0.812 |
+
+Both questions show high normalised entropy (above 0.80), meaning responses
+are fairly spread across categories in both cases. The dominant groups —
+developers with more than 10 years of experience, and Team Lead / Software
+Engineer roles — reduce entropy from its theoretical maximum, but not enough
+to make the distributions strongly concentrated.
+
+---
+
+### 5.9 What Does Entropy Add Beyond Proportions?
+
+A natural question is: if the proportions already show which category
+dominates and how evenly responses are spread, what does entropy actually
+add?
+
+The answer is: nothing new for a single question read by a human eye.
+Looking at a distribution table, you can already interpret diversity and
+dominance qualitatively. Entropy converts that qualitative interpretation
+into a single quantitative number. That number becomes useful the moment
+you need to go beyond reading one table — comparing diversity across
+questions with different numbers of categories, tracking how a distribution
+shifts between survey versions, or ranking many questions by their level
+of consensus. In short, entropy does not reveal something invisible in the
+data; it encodes what you already see into a form that is computable and
+comparable.
+
+---------
+
 
 ## 6. Chi-Square Goodness-of-Fit Test <a name="chi-square-test"></a>
 
