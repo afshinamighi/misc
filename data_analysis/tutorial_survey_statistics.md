@@ -597,7 +597,7 @@ comparable.
 
 ---
 
-## 6. Chi-Square Goodness of Fit <a name="chi-sqaure-test"></a>
+## 6. Chi-Square Goodness of Fit <a name="chi-square-test"></a>
 
 ### 6.1 Intuition in a Survey Context
 
