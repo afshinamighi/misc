@@ -1,5 +1,3 @@
----
-
 ## 7. Chi-Square Goodness of Fit: The Full Procedure
 
 ### 7.1 Intuition
