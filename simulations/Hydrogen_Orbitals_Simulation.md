@@ -76,6 +76,9 @@ where:
 
 The quantum number `l` determines the orbital shape: `l = 0` corresponds to `s` orbitals, `l = 1` to `p` orbitals, and `l = 2` to `d` orbitals. The quantum number `m` determines the orientation of the orbital in space. These quantum numbers arise because the hydrogen atom is symmetric in all directions.
 
+![Orbital shapes and magnetic quantum number orientations](pix/orbital_shapes_l_m.png)
+
+
 `m` tells the orientation.
 
 Suppose you have a dumbbell. You can point it:
@@ -363,6 +366,12 @@ V_1 & 0 & 0 & \cdots \\
 \vdots & \vdots & \vdots & \ddots
 \end{bmatrix}
 $$
+
+## Simulation Result
+
+The figure below shows the first four Hamiltonian eigenvectors shifted vertically by their energies, together with the harmonic oscillator potential $V(x)$.
+
+![Hamiltonian eigenvectors from the finite-difference simulation](pix/hamiltonian_eigenvectors.png)
 
 # Simulation Python Code
 
